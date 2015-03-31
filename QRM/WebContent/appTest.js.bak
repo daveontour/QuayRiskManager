@@ -1,0 +1,270 @@
+
+var states = [
+{riskCode:"RK234", title:"1", tol:1, rank:1},
+{riskCode:"RK235", title:"2", tol:2, rank:2},
+{riskCode:"RK236", title:"3", tol:3, rank:3},
+{riskCode:"RK237", title:"4", tol:4, rank:4},
+{riskCode:"RK238", title:"5", tol:5, rank:5},
+{riskCode:"RK239", title:"6", tol:1, rank:5},
+{riskCode:"RK240", title:"7", tol:1, rank:5},
+{riskCode:"RK234A", title:"1", tol:1, rank:1},
+{riskCode:"RK235A", title:"2", tol:2, rank:2},
+{riskCode:"RK236A", title:"3", tol:3, rank:3},
+{riskCode:"RK237A", title:"4", tol:4, rank:4},
+{riskCode:"RK238A", title:"5", tol:5, rank:5},
+{riskCode:"RK239A", title:"6", tol:1, rank:5},
+{riskCode:"RK234", title:"1", tol:1, rank:1},
+{riskCode:"RK235", title:"2", tol:2, rank:2},
+{riskCode:"RK236", title:"3", tol:3, rank:3},
+{riskCode:"RK237", title:"4", tol:4, rank:4},
+{riskCode:"RK238", title:"5", tol:5, rank:5},
+{riskCode:"RK239", title:"6", tol:1, rank:5},
+{riskCode:"RK240", title:"7", tol:1, rank:5},
+{riskCode:"RK234A", title:"1", tol:1, rank:1},
+{riskCode:"RK235A", title:"2", tol:2, rank:2},
+{riskCode:"RK236A", title:"3", tol:3, rank:3},
+{riskCode:"RK237A", title:"4", tol:4, rank:4},
+{riskCode:"RK237A", title:"4", tol:4, rank:4},
+{riskCode:"RK238A", title:"5", tol:5, rank:5},
+{riskCode:"RK239A", title:"6", tol:1, rank:5},
+{riskCode:"RK234", title:"1", tol:1, rank:1},
+{riskCode:"RK235", title:"2", tol:2, rank:2},
+{riskCode:"RK236", title:"3", tol:3, rank:3},
+{riskCode:"RK237", title:"4", tol:4, rank:4},
+{riskCode:"RK238", title:"5", tol:5, rank:5},
+{riskCode:"RK239", title:"6", tol:1, rank:5},
+{riskCode:"RK240", title:"7", tol:1, rank:5},
+{riskCode:"RK234A", title:"1", tol:1, rank:1},
+{riskCode:"RK235A", title:"2", tol:2, rank:2},
+{riskCode:"RK236A", title:"3", tol:3, rank:3},
+{riskCode:"RK237A", title:"4", tol:4, rank:4},
+{riskCode:"RK238A", title:"5", tol:5, rank:5},
+{riskCode:"RK239A", title:"6", tol:1, rank:5},
+{riskCode:"RK240A", title:"7", tol:1, rank:5},
+{riskCode:"RK234B", title:"1", tol:1, rank:1}];
+
+
+var ghMatrix = [0.75,0,0,0.75,0,0];
+var drag = d3.behavior.drag()
+.on("dragstart", function(d){
+   
+   var bbox = this.getBBox();
+   var ctm = this.getCTM();
+ 
+   var x =  ctm.e/ctm.a+bbox.x-ghMatrix[4]/ghMatrix[0];
+   var y = ctm.f/ctm.d+bbox.y-ghMatrix[5]/ghMatrix[3];
+   
+   d3.select("#rankGroupHolder").append("use")
+   .attr("xlink:href","#ghostDef")
+   .attr("transform", "translate("+x+", "+y+")")
+   .attr("id", "sorterGhost");
+
+   d3.select("#rankGroupHolder").append("use")
+   .attr("xlink:href","#insertionMarkerDef")
+   .attr("transform", "translate("+x+", "+y+")")
+   .attr("id", "insertionMarker")
+   .style("display", "none");
+   
+   this.parentNode.appendChild(this);
+})
+.on("drag", function(){
+   this.parentNode.appendChild(this);
+   d3.select(this).attr("transform", function( d, i) { return "translate(" + [ d3.event.x,d3.event.y ] + ")";});
+   d3.select("#insertionMarker").attr("transform", function( d, i) {
+      var y = (28+Math.floor(d3.event.y/35)*35);
+	  var x = (Math.floor(d3.event.x/520)*520+10;
+      return "translate(" + [ x,y ] + ")";
+   })
+   .style("display","inline");
+
+})
+.on("dragend", function(d){
+   var ghost = d3.select("#sorterGhost");
+   var ghostCTM = ghost.node().getCTM();
+   var marker = d3.select("#insertionMarker");
+   var markerCTM = marker.node().getCTM();
+   var moveUp = ghostCTM.f > markerCTM.f;
+   
+   if (moveUp){
+      var minY = Number.MAX_VALUE;
+	  d3.select("#rankGroupHolder").selectAll("g.risk").each(function(d2,i){
+
+		 var node = d3.select(this);
+         var nodeCTM = node.node().getCTM();
+
+         if(nodeCTM.f < ghostCTM.f && nodeCTM.f > markerCTM.f){
+            
+			var currentY = Number(node.attr("ty"));
+			minY = Math.min(minY, currentY)
+			var newY = currentY+35;
+
+			node.attr("ty",newY);
+            node.select("rect").style("fill", "green");
+            node.transition().attr("transform", function(){ 
+              return "translate(10 "+newY+")";
+           });     
+         }
+      });
+      
+      var dropNode = d3.select(this);
+	  if (minY == Number.MAX_VALUE) {
+		  minY = Number(dropNode.attr("ty"));
+	  }
+      dropNode.select("rect").style("fill", "yellow");
+	  dropNode.attr("ty", minY);
+      dropNode.transition().attr("transform", "translate(10 "+minY+")");
+
+   } else {
+
+	var maxY = 0;
+
+      d3.select("#rankGroupHolder").selectAll("g.risk").each(function(d2,i){
+         var node = d3.select(this);
+         var nodeCTM = node.node().getCTM();
+         if(nodeCTM.f > ghostCTM.f && nodeCTM.f < markerCTM.f){
+            
+			var currentY = Number(node.attr("ty"));
+			maxY = Math.max(maxY, currentY);
+			var newY = currentY-35;
+            
+			node.attr("ty",newY);
+            node.select("rect").style("fill", "blue");
+            node.transition().attr("transform", function(){
+               return "translate(10 "+newY+")";
+            });     
+         }
+      });
+
+      // Move the node itself
+      var dropNode = d3.select(this);
+	  if (maxY == 0) {
+		  maxY = Number(dropNode.attr("ty"));
+	  }
+	  dropNode.attr("ty", maxY);
+      dropNode.select("rect").style("fill", "yellow");
+      dropNode.transition().attr("transform", "translate(10 "+maxY+")");      
+   }  
+   
+   ghost.remove();
+   marker.remove();
+})
+.origin(function (d){
+   var bbox = this.getBBox();
+   var ctm = this.getCTM();
+   return {x:bbox.x+ctm.e/ctm.a-ghMatrix[4]/ghMatrix[0], y:bbox.y+ctm.f/ctm.d - ghMatrix[5]/ghMatrix[3]};
+});
+
+states.forEach(function(risk){
+   risk.moveDown = false;
+   risk.moveUp = false;
+});
+
+states.sort(function(a,b){
+   return b.rank - a.rank;
+});
+
+layoutTable();
+
+function layoutTable(){
+
+   d3.select("#svgDiv svg").remove();
+
+   var topSVG = d3.select("#svgDiv").append("svg")
+   .attr("width", "960px")
+   .attr("height", "900px"); 
+   
+   createDefinitions(topSVG); 
+   
+   var svg = topSVG
+   .append("g")
+   .attr("id", "rankGroupHolder")
+   .attr("h", 900)
+   .attr("transform", "matrix("+ ghMatrix.join(' ')+")");
+
+   //Number the current order with the y spacing
+   var index = 0;
+   states.forEach(function(item){
+	   item.ty = index*35;
+
+	   var xCol = Math.floor(item.ty/900);
+	   var tx = xCol*520+10;
+
+	   var colY = item.ty % 900;
+
+	   colY = Math.floor(colY/35)*35;
+
+	   item.tx = tx;
+	   item.colY = colY;
+	
+
+	   index++;
+   });
+   
+   var nodes = svg.selectAll( "g.state").data( states);
+
+   var risk = nodes.enter()
+   .append("g")
+   .attr("class","risk")
+   .attr("id", function(d){return d.riskCode;})
+   .attr("tx", function(d){return d.tx;})
+   .attr("colY", function(d){return d.colY;})
+   .attr("transform", function(d,i){ return "translate("+d.tx+", "+d.colY+")";})
+
+//   .attr("transform", function(d,i){ return "translate(10, "+i*35+")";})
+   .attr("ty", function(d,i){ return d.ty;})
+   .call(drag); 
+
+   risk.append("rect")
+   .attr("width", "500")
+   .attr("height", "30")
+   .attr("fill", 'aliceblue')
+   .style("stroke", 'gray')
+   .attr("transform", "translate(5,5)");
+   
+   risk.append("text")
+   .attr("transform", "translate(5,25)")
+   .text(function(d,i){return String(d.riskCode)+"  - "+i*35;});
+}
+
+function createDefinitions(svg){
+   var def = svg.append("defs");
+
+   def.append("style")
+   .attr("type", "text/css")
+   .text(
+         ".marker {stroke-width: 4px; stroke-dasharray: 4px; stroke:red}" +
+         ".markervert {stroke-width: 4px; stroke:red}");
+   
+   // Create the insertion marker definition
+   var marker = def.append("g")
+   .attr("id", "insertionMarkerDef");
+
+   marker.append("line")
+   .attr("x1", "0")
+   .attr("y1", "0")
+   .attr("x2", "0")
+   .attr("y2", "19")
+   .attr("class", "markervert");
+
+   marker.append("line")
+   .attr("x1", "511")
+   .attr("y1", "0")
+   .attr("x2", "511")
+   .attr("y2", "19")
+   .attr("class", "markervert");
+
+   marker.append("line")
+   .attr("x1", "0")
+   .attr("y1", "9")
+   .attr("x2", "511")
+   .attr("y2", "9")
+   .attr("class", "marker");
+   
+   //Create the ghost holder definition
+   def.append("g").attr("id", "ghostDef").append("rect")
+   .attr("width", "500")
+   .attr("height", "30")
+   .style("stroke", 'gray')
+   .style("fill", 'transparent')
+   .style("stroke-dasharray", '4px');
+}
